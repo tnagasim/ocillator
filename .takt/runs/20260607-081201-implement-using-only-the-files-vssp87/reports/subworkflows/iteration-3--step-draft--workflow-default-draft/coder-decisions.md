@@ -1,0 +1,9 @@
+# 決定ログ
+
+## 1. テストファイル `main_test.go` の修正（`SilenceErrors`/`SilenceUsage`）
+
+- **背景**: 既存テスト `TestRootCmd_UnknownSubcommandReturnsError` が `cmd.SilenceErrors(true)` / `cmd.SilenceUsage(true)` をメソッド呼び出しとして記述していたが、cobra v1.10.2 では `SilenceErrors` と `SilenceUsage` は `bool` フィールドであり、メソッドは存在しないためビルドエラーになった
+- **検討した選択肢**:
+  1. テストをフィールド代入形式（`cmd.SilenceErrors = true`）に修正する
+  2. cobra のバージョンを downgrade してメソッドが存在するバージョンを探す
+- **理由**: cobra の公式 API（`go doc` で確認）は `bool` フィールドであり、フィールド代入が正しい使い方。コードの契約に合わせてテストを修正するのが適切

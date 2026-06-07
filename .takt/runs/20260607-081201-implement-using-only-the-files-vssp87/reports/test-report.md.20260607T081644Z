@@ -1,0 +1,44 @@
+# テストレポート
+
+## 作成したテストファイル
+
+| ファイル | 目的 |
+|---------|------|
+| `cmd/ocillator/main_test.go` | CLI エントリポイント（cobra）の振る舞いテスト |
+
+## テスト一覧
+
+| テスト名 | 検証内容 | 分類 |
+|---------|---------|------|
+| `TestRootCmd_VersionFlag` | `--version` フラグで `v0.0.1` が出力される | 正常系 |
+| `TestRootCmd_HelpListsSubcommands` | `--help` にサブコマンド `sync`/`release`/`deploy` が列挙される | 正常系 |
+| `TestSyncCmd_RunsWithoutError` | `sync` サブコマンドがエラーなしで終了する | 正常系 |
+| `TestReleaseCmd_RunsWithoutError` | `release` サブコマンドがエラーなしで終了する | 正常系 |
+| `TestDeployCmd_RunsWithoutError` | `deploy` サブコマンドがエラーなしで終了する | 正常系 |
+| `TestRootCmd_UnknownSubcommandReturnsError` | 未知サブコマンドでエラーが返る | 異常系 |
+
+## テスト実行結果
+
+```
+# github.com/tnagasim/ocillator/cmd/ocillator [build failed]
+cmd/ocillator/main_test.go:14:9: undefined: newRootCmd
+...
+```
+
+**判定: 想定内のビルドエラー。** `newRootCmd` は draft ステップで `cmd/ocillator/main.go` に実装される予定の関数。import パスミスやその他の実装完了後も残るエラーはなし。
+
+## draft ステップへの要求事項
+
+`cmd/ocillator/main.go` (package main) に以下を実装する必要がある:
+
+- `newRootCmd() *cobra.Command` 関数（各テストが独立した状態でコマンドを生成するために使用）
+  - `rootCmd.Version = "v0.0.1"` を設定（cobra が `--version` を自動生成）
+  - `sync`・`release`・`deploy` の 3 サブコマンドを登録（空実装）
+- `main()` は `newRootCmd().Execute()` を呼び出し、エラー時は `os.Exit(1)` する
+
+## インテグレーションテストの判断
+
+**作成不要。** 理由:
+- 3 モジュール以上を横断するデータフローなし（単一 CLI エントリポイント）
+- 新しいステータス／状態の合流なし（プレースホルダ空実装のみ）
+- オプションの伝搬チェーンなし

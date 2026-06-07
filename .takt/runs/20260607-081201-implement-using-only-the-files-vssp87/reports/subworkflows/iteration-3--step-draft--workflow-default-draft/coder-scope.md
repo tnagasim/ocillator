@@ -1,0 +1,24 @@
+# 変更スコープ宣言
+
+## タスク
+OCIllator プロジェクトの初期スキャフォールド（Go モジュール・CLI エントリポイント・CI/CD）を構築する
+
+## 変更予定
+| 種別 | ファイル |
+|------|---------|
+| 作成 | `cmd/ocillator/main.go` |
+| 変更 | `.mise.toml` |
+| 変更 | `go.mod` |
+| 作成 | `go.sum` |
+| 作成 | `internal/.gitkeep` |
+| 作成 | `pkg/.gitkeep` |
+| 作成 | `configs/.gitkeep` |
+| 作成 | `.github/workflows/build.yml` |
+| 修正 | `cmd/ocillator/main_test.go` |
+
+## 推定規模
+Small
+
+## 影響範囲
+- `cmd/ocillator` パッケージ（CLI エントリポイント）
+- CI/CD（GitHub Actions ビルドワークフロー）
