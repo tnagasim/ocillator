@@ -1,0 +1,4 @@
+dist/
+*.exe
+ocillator
+.DS_Store
