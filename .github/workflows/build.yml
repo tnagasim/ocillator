@@ -1,0 +1,27 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build darwin/arm64
+        run: GOOS=darwin GOARCH=arm64 go build -o dist/ocillator-darwin-arm64 ./cmd/ocillator
+
+      - name: Build linux/amd64
+        run: GOOS=linux GOARCH=amd64 go build -o dist/ocillator-linux-amd64 ./cmd/ocillator
+
+      - name: Build windows/amd64
+        run: GOOS=windows GOARCH=amd64 go build -o dist/ocillator-windows-amd64.exe ./cmd/ocillator
