@@ -1,0 +1,232 @@
+# 実装計画レポート：OCIllator プロジェクト初期スキャフォールド
+
+## 現状分析
+
+### 既存ファイル（変更要否の判定）
+
+| ファイル | 現状 | 判定 | 根拠 |
+|---------|------|------|------|
+| `go.mod` | `module github.com/tnagasim/ocillator` / `go 1.26.4` | **変更要** | タスクは Go `1.24` を指定。`go.mod:1` のモジュール名は正しい。go バージョンのみ変更 |
+| `.mise.toml` | `go = "1.26"` | **変更要** | タスクは `go = "1.24"` を明示指定（`.mise.toml:2`） |
+| `docs/project-proposal.md` | 存在 | 変更不要 | 参照資料として読取のみ |
+| `LICENSE` | 存在 | 変更不要 | タスクスコープ外 |
+| `.gitignore` | 存在（`dist/`, `*.exe`, `ocillator`, `.DS_Store`） | 変更不要 | タスクスコープ外 |
+
+### 存在しないファイル（新規作成）
+
+- `go.sum` — cobra 追加後に `go mod tidy` で生成
+- `internal/.gitkeep`
+- `pkg/.gitkeep`
+- `configs/.gitkeep`
+- `cmd/ocillator/main.go`
+- `.github/workflows/build.yml`
+
+---
+
+## 要件整理
+
+### 明示要求
+
+1. `.mise.toml` の Go バージョンを `1.24` に変更する
+2. `go.mod` の go ディレクティブを `1.24` に合わせる（`.mise.toml` との整合性；`go mod tidy` で最終確定）
+3. `go.sum` を生成する（cobra 依存追加後に `go mod tidy` で生成）
+4. `internal/`, `pkg/`, `configs/` を `.gitkeep` 付きで作成する
+5. `cmd/ocillator/main.go` に cobra を使った CLI を実装する
+   - ルートコマンド定義
+   - `--version` フラグで `v0.0.1` を出力
+   - `sync`, `release`, `deploy` サブコマンド（空実装）
+6. `.github/workflows/build.yml` を作成する
+   - トリガー: `push`, `pull_request`
+   - Go バージョン: `1.24`
+   - `go test ./...` 実行後にクロスコンパイル
+   - 成果物: `ocillator-darwin-arm64`, `ocillator-linux-amd64`, `ocillator-windows-amd64.exe`
+
+### 暗黙要求（明示要求から導出）
+
+- cobra を `go.mod` に追加する（「cobra 推奨で CLI 実装」から導出）
+- `go build ./...` が通ること → cobra の import が解決されている必要がある
+
+---
+
+## 設計決定
+
+### CLI 構造（`cmd/ocillator/main.go`）
+
+タスク指定が「対象ファイル: `cmd/ocillator/main.go`」の単一ファイル、かつサブコマンドはすべて空のプレースホルダであるため、1 ファイルに収める。推定行数 60〜80 行で 200 行制限以内。
+
+```
+cmd/ocillator/main.go
+ ├── main()             — Execute() を呼ぶだけ
+ ├── rootCmd            — cobra.Command (Use: "ocillator")
+ ├── syncCmd            — cobra.Command (Use: "sync", 空実装)
+ ├── releaseCmd         — cobra.Command (Use: "release", 空実装)
+ └── deployCmd          — cobra.Command (Use: "deploy", 空実装)
+```
+
+`--version` の実装: cobra の `Version` フィールドに `"v0.0.1"` をセットすれば `--version` フラグが自動生成される。
+
+### GitHub Actions 構造
+
+単一ジョブで matrix を使ってクロスコンパイル。`go test` はビルド前に実行（順次実行、matrix 外）。
+
+---
+
+## 実装手順（Coder 向けガイドライン）
+
+### Step 1: `.mise.toml` 修正
+
+- `go = "1.26"` → `go = "1.24"` に変更
+- ファイル: `.mise.toml:2`
+
+### Step 2: `go.mod` の go バージョン修正
+
+- `go 1.26.4` → `go 1.24` に変更
+- ファイル: `go.mod:3`
+- **注意:** cobra 追加後に `go mod tidy` を実行すると go ディレクティブが更新される場合がある。`go mod tidy` 後に確認する
+
+### Step 3: ディレクトリと `.gitkeep` 作成
+
+作成するファイル（内容は空）:
+- `internal/.gitkeep`
+- `pkg/.gitkeep`
+- `configs/.gitkeep`
+
+`cmd/` は `main.go` を配置するため `.gitkeep` 不要（タスク明示）。
+
+### Step 4: cobra 依存追加
+
+```bash
+go get github.com/spf13/cobra@latest
+go mod tidy
+```
+
+最新安定版 cobra v1.x を使用。`go.sum` が生成される。
+
+### Step 5: `cmd/ocillator/main.go` 実装
+
+```go
+package main
+
+import (
+    "github.com/spf13/cobra"
+    "os"
+)
+
+func main() {
+    rootCmd := &cobra.Command{
+        Use:     "ocillator",
+        Short:   "OCI image distribution tool for air-gapped environments",
+        Version: "v0.0.1",
+    }
+
+    syncCmd := &cobra.Command{
+        Use:   "sync",
+        Short: "Sync OCI images",
+        RunE: func(cmd *cobra.Command, args []string) error {
+            return nil
+        },
+    }
+
+    releaseCmd := &cobra.Command{
+        Use:   "release",
+        Short: "Manage releases",
+        RunE: func(cmd *cobra.Command, args []string) error {
+            return nil
+        },
+    }
+
+    deployCmd := &cobra.Command{
+        Use:   "deploy",
+        Short: "Deploy images",
+        RunE: func(cmd *cobra.Command, args []string) error {
+            return nil
+        },
+    }
+
+    rootCmd.AddCommand(syncCmd, releaseCmd, deployCmd)
+
+    if err := rootCmd.Execute(); err != nil {
+        os.Exit(1)
+    }
+}
+```
+
+**検証:** `go run ./cmd/ocillator --help` と `go run ./cmd/ocillator --version` の両方が通ること。
+
+### Step 6: `.github/workflows/build.yml` 作成
+
+```yaml
+name: Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - run: go test ./...
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: darwin
+            goarch: arm64
+            artifact: ocillator-darwin-arm64
+          - goos: linux
+            goarch: amd64
+            artifact: ocillator-linux-amd64
+          - goos: windows
+            goarch: amd64
+            artifact: ocillator-windows-amd64.exe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -o ${{ matrix.artifact }} ./cmd/ocillator
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}
+```
+
+**検証:** `yamllint` または `actionlint` で YAML 構文確認。
+
+---
+
+## 影響範囲
+
+| 変更 | 影響先 |
+|------|--------|
+| cobra 追加 (`go.mod`, `go.sum`) | `go build ./...` / `go test ./...` が通るか |
+| `.mise.toml` バージョン変更 | ローカル開発環境の Go バージョン（`mise install` で反映） |
+| `go.mod` バージョン変更 | `go mod tidy` が cobra の最小 go バージョン要件を満たすか確認が必要 |
+
+---
+
+## 注意点・アンチパターン
+
+1. **`go.sum` を手動作成しない。** `go mod tidy` で自動生成させること
+2. **cobra の `Version` フィールドを使う。** `--version` 専用フラグを手動定義しない（cobra が自動生成する）
+3. **`cmd/` に `.gitkeep` を置かない。** タスク明示（「`cmd/` を除く」）
+4. **GitHub Actions の `go-version` は文字列 `"1.24"` で指定する。** 数値 `1.24` にすると `1.2` と解釈される YAML の罠に注意
+
+---
+
+## 確認事項（ユーザーにのみ回答可能）
+
+- `go.mod` の go バージョンは `1.24` に揃えてよいか（現在 `1.26.4` が設定されており、ローカルに Go 1.26.4 がインストールされている可能性がある）
+  - 方針: タスク指示書と `docs/project-proposal.md` の両方が `1.24` を明示しているため、`1.24` に変更する方針で進める
